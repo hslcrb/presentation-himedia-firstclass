@@ -1,6 +1,14 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import BlueField from './BlueField.vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
+import ImprintCover from './ImprintCover.vue'
+
+const previews = {
+  link: defineAsyncComponent(() => import('./studies/LinkStudy.vue')),
+  type: defineAsyncComponent(() => import('./studies/TypeStudy.vue')),
+}
+const requested = new URLSearchParams(window.location.search).get('study')
+const edition = Object.hasOwn(previews, requested) ? requested : 'imprint'
+const Cover = previews[edition] ?? ImprintCover
 
 const fullscreen = ref(false)
 const supportsFullscreen = ref(false)
@@ -34,12 +42,8 @@ onBeforeUnmount(() => document.removeEventListener('fullscreenchange', syncFulls
 </script>
 
 <template>
-  <article class="cover" aria-labelledby="cover-title">
-    <BlueField />
-
-    <h1 id="cover-title" class="cover-title">
-      <span>채용연계형</span> <span>직무교육과정</span>
-    </h1>
+  <article class="cover" :class="edition" aria-label="채용연계형 직무교육과정">
+    <component :is="Cover" />
 
     <button
       v-if="supportsFullscreen"
@@ -74,33 +78,16 @@ onBeforeUnmount(() => document.removeEventListener('fullscreenchange', syncFulls
   isolation: isolate;
   container-type: size;
   overflow: hidden;
-  background: #d1e3f4;
-  color: #0b2549;
+  background: #f0f5f5;
+  color: #eff6ff;
+  font-family: "Noto Sans KR Cover", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
-
-.cover-title {
-  position: absolute;
-  left: max(5.5cqw, env(safe-area-inset-left));
-  bottom: max(7.8cqh, env(safe-area-inset-bottom));
-  margin: 0;
-  font-family: "Noto Sans KR Cover", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-  font-size: min(7.2cqw, 19cqh);
-  font-weight: 685;
-  line-height: 1.12;
-  letter-spacing: -.065em;
-  word-spacing: .085em;
-  word-break: keep-all;
-}
-
-.cover-title span {
-  white-space: nowrap;
-}
-
 .fullscreen-button {
   position: absolute;
+  z-index: 1;
   top: max(3.6cqh, env(safe-area-inset-top));
-  right: max(2.4cqw, env(safe-area-inset-right));
+  right: max(2.8cqw, env(safe-area-inset-right));
   display: grid;
   width: 44px;
   height: 44px;
@@ -109,34 +96,15 @@ onBeforeUnmount(() => document.removeEventListener('fullscreenchange', syncFulls
   border: 0;
   border-radius: 3px;
   background: transparent;
-  color: #163859;
+  color: #d9edff;
   cursor: pointer;
 }
-
-.fullscreen-button svg {
-  width: 19px;
-  height: 19px;
-  stroke-width: 1.65;
-}
-
-.fullscreen-button:focus-visible {
-  outline: 2px solid #123965;
-  outline-offset: 4px;
-}
+.imprint .fullscreen-button { color: #102870; }
+.fullscreen-button svg { width: 19px; height: 19px; stroke-width: 1.65; }
+.fullscreen-button:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
 @media (max-aspect-ratio: 1/1) {
-  .cover-title {
-    left: max(6.5cqw, env(safe-area-inset-left));
-    bottom: max(7cqh, env(safe-area-inset-bottom));
-    font-size: min(12.8cqw, 14cqh);
-    line-height: 1.12;
-  }
-  .cover-title span {
-    display: block;
-  }
-  .fullscreen-button {
-    top: max(18px, env(safe-area-inset-top));
-    right: max(18px, env(safe-area-inset-right));
-  }
+  .type .fullscreen-button { color: #102870; }
+  .fullscreen-button { top: max(16px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); }
 }
 </style>

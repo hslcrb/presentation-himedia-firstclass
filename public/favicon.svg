@@ -1,10 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="field" x2="0" y2="1">
-      <stop stop-color="#cce8ff"/><stop offset=".5" stop-color="#1464f5"/>
-      <stop offset="1" stop-color="#cce8ff"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="12" fill="#e9f8fe"/>
-  <path fill="url(#field)" d="M5 6h10v9h11v9h12v-9h11V6h10v52H49v-9H38v-9H26v9H15v9H5Z"/>
+  <rect width="64" height="64" rx="12" fill="#f0f5f5"/>
+  <g transform="rotate(-32 32 32)">
+    <ellipse cx="31" cy="24" rx="23" ry="13" fill="#2797dc"/>
+    <ellipse cx="32" cy="38" rx="23" ry="13" fill="#3452ad" style="mix-blend-mode:multiply"/>
+  </g>
 </svg>
