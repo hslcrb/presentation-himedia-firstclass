@@ -42,6 +42,6 @@ body,
 }
 
 body {
-  background: #f8f5ef;
+  background: #e2f2fc;
 }
 </style>

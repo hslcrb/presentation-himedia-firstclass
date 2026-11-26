@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="fold" x2="0.65" y2="1">
-      <stop stop-color="#ff8238"/><stop offset=".43" stop-color="#fa325e"/>
-      <stop offset=".68" stop-color="#ad29a6"/><stop offset="1" stop-color="#422ccc"/>
+    <linearGradient id="field" x2="0" y2="1">
+      <stop stop-color="#cce8ff"/><stop offset=".5" stop-color="#1464f5"/>
+      <stop offset="1" stop-color="#cce8ff"/>
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="13" fill="#f8f5ef"/>
-  <path fill="url(#fold)" d="M49 3C20 9 9 19 21 32c5 6 14 10 14 15 0 5-9 10-21 14 26-2 44-13 35-27-5-9-18-14-18-18 0-5 9-10 18-13Z"/>
+  <rect width="64" height="64" rx="12" fill="#e9f8fe"/>
+  <path fill="url(#field)" d="M5 6h10v9h11v9h12v-9h11V6h10v52H49v-9H38v-9H26v9H15v9H5Z"/>
 </svg>

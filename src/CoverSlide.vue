@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import RibbonArt from './RibbonArt.vue'
+import BlueField from './BlueField.vue'
 
 const fullscreen = ref(false)
 const supportsFullscreen = ref(false)
@@ -35,11 +35,10 @@ onBeforeUnmount(() => document.removeEventListener('fullscreenchange', syncFulls
 
 <template>
   <article class="cover" aria-labelledby="cover-title">
-    <RibbonArt />
+    <BlueField />
 
     <h1 id="cover-title" class="cover-title">
-      <span>채용연계형</span>
-      <strong>직무교육과정</strong>
+      <span>채용연계형</span> <span>직무교육과정</span>
     </h1>
 
     <button
@@ -75,35 +74,27 @@ onBeforeUnmount(() => document.removeEventListener('fullscreenchange', syncFulls
   isolation: isolate;
   container-type: size;
   overflow: hidden;
-  background:
-    radial-gradient(ellipse 29% 55% at 86% 23%, #f6e5dc 1%, transparent 98%),
-    radial-gradient(ellipse 30% 35% at 77% 81%, #eae3ed 0%, transparent 98%),
-    #f8f5ef;
-  color: #211e24;
+  background: #d1e3f4;
+  color: #0b2549;
   -webkit-font-smoothing: antialiased;
 }
 
 .cover-title {
   position: absolute;
-  left: 6%;
-  top: 50%;
-  transform: translateY(-50%);
+  left: max(5.5cqw, env(safe-area-inset-left));
+  bottom: max(7.8cqh, env(safe-area-inset-bottom));
   margin: 0;
   font-family: "Noto Sans KR Cover", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-  font-size: min(6.55cqw, 14cqh);
-  font-weight: 435;
-  line-height: 1.18;
-  letter-spacing: -.085em;
+  font-size: min(7.2cqw, 19cqh);
+  font-weight: 685;
+  line-height: 1.12;
+  letter-spacing: -.065em;
+  word-spacing: .085em;
   word-break: keep-all;
 }
 
-.cover-title span,
-.cover-title strong {
-  display: block;
-}
-
-.cover-title strong {
-  font-weight: 810;
+.cover-title span {
+  white-space: nowrap;
 }
 
 .fullscreen-button {
@@ -118,7 +109,7 @@ onBeforeUnmount(() => document.removeEventListener('fullscreenchange', syncFulls
   border: 0;
   border-radius: 3px;
   background: transparent;
-  color: #28222a;
+  color: #163859;
   cursor: pointer;
 }
 
@@ -129,20 +120,19 @@ onBeforeUnmount(() => document.removeEventListener('fullscreenchange', syncFulls
 }
 
 .fullscreen-button:focus-visible {
-  outline: 2px solid #32235c;
+  outline: 2px solid #123965;
   outline-offset: 4px;
 }
 
 @media (max-aspect-ratio: 1/1) {
-  .cover {
-    background: radial-gradient(ellipse 65% 38% at 86% 78%, #eee1e4, transparent), #f8f5ef;
-  }
   .cover-title {
-    top: 12%;
-    left: 7.2%;
-    transform: none;
-    font-size: 11.6cqw;
-    line-height: 1.19;
+    left: max(6.5cqw, env(safe-area-inset-left));
+    bottom: max(7cqh, env(safe-area-inset-bottom));
+    font-size: min(12.8cqw, 14cqh);
+    line-height: 1.12;
+  }
+  .cover-title span {
+    display: block;
   }
   .fullscreen-button {
     top: max(18px, env(safe-area-inset-top));
