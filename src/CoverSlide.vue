@@ -79,7 +79,7 @@ onBeforeUnmount(() => document.removeEventListener('fullscreenchange', syncFulls
   isolation: isolate;
   container-type: size;
   overflow: hidden;
-  background: #040b20;
+  background: #080e0c;
   color: #eff6ff;
   font-family: "Noto Sans KR Cover", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -101,6 +101,7 @@ onBeforeUnmount(() => document.removeEventListener('fullscreenchange', syncFulls
   cursor: pointer;
 }
 .imprint .fullscreen-button { color: #102870; }
+.facade .fullscreen-button { color: #dce6ce; }
 .fullscreen-button svg { width: 19px; height: 19px; stroke-width: 1.65; }
 .fullscreen-button:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 

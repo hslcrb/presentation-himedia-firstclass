@@ -1,174 +1,235 @@
-// The supplied symbol uses a 27-unit grid: a three-unit beam, a five-unit
-// opening below it, and six one-unit posts. Depth is added behind the face.
+import symbol from '../세종문화회관심볼.svg?raw'
+
+// The extrusions and the optical apertures share the symbol's 27-unit grid.
+// The original SVG supplies the front faces, rendered at display resolution.
 const unit = .16
 const halfWidth = 13.5 * unit
-const beam = [-halfWidth, halfWidth, 24 * unit, 27 * unit, -.50, .12]
-const pieces = [beam, ...[0, 2, 4, 22, 24, 26].map(start => [
-  start * unit - halfWidth, (start + 1) * unit - halfWidth, 0, 19 * unit, -.22, .10,
+const frontZ = .10
+const lintel = [-halfWidth, halfWidth, 24 * unit, 27 * unit, -.32, frontZ]
+const prisms = [lintel, ...[0, 2, 4, 22, 24, 26].map(column => [
+  column * unit - halfWidth, (column + 1) * unit - halfWidth, 0, 19 * unit, -.14, frontZ,
 ])]
-const azimuth = .305
-const elevation = .307
+const azimuth = .435, elevation = .39
 const cosA = Math.cos(azimuth), sinA = Math.sin(azimuth)
 const cosE = Math.cos(elevation), sinE = Math.sin(elevation)
-const dx = -sinA / cosA
-const dy = sinE / (cosA * cosE)
-const clamp = n => Math.min(1, Math.max(0, n))
+const rayX = -sinA / cosA, rayY = sinE / (cosA * cosE)
+const clamp = value => Math.min(1, Math.max(0, value))
+const scatteringDepths = [.38, 1.32]
 
-// Interpolate a Gaussian from a small table; the light integrator takes
-// several samples per pixel, and the field is stationary.
-const falloff = Float32Array.from({ length: 1025 }, (_, i) => Math.exp(-((i / 256) ** 2)))
-function glow(x) {
-  const t = Math.abs(x) * 256
+const grainTile = new Float32Array(128 * 128)
+let grainSeed = 0x1f7c34d3
+for (let i = 0; i < grainTile.length; i++) {
+  grainSeed = (Math.imul(1664525, grainSeed) + 1013904223) >>> 0
+  grainTile[i] = grainSeed / 4294967296 - .5
+}
+
+const gaussians = Float32Array.from({ length: 1025 }, (_, i) => Math.exp(-((i / 256) ** 2)))
+function g(value) {
+  const t = Math.abs(value) * 256
   if (t >= 1024) return 0
   const i = t | 0
-  return falloff[i] + (falloff[i + 1] - falloff[i]) * (t - i)
+  return gaussians[i] + (gaussians[i + 1] - gaussians[i]) * (t - i)
 }
 
-function slit(distance, penumbra) {
-  const edge = clamp((.071 + penumbra - Math.abs(distance)) / (2 * penumbra))
-  return edge * edge * (3 - 2 * edge)
+function windowAt(delta, width, softness) {
+  const t = clamp((width + softness - Math.abs(delta)) / (2 * softness))
+  return t * t * (3 - 2 * t)
 }
 
-// Back-project a sample to the facade plane. Both the haze and the floor
-// use the same openings, so the bright stripes begin at the actual jambs.
-function aperture(gateX, blur) {
-  if (gateX < .1 || gateX > 2.1) return 0
-  const gaps = slit(gateX - 12 * unit, blur) + slit(gateX - 10 * unit, blur)
-  // A wider wash grazes the inner lip of each triplet.
-  const opening = clamp(.5 + (8.5 * unit - gateX) / (2.6 * blur))
-  const inner = opening * opening * (3 - 2 * opening) * glow((gateX - 1.16) / .33) * .53
-  return gaps + inner
+// A wide green source and a smaller, offset gold source sit behind the wall.
+// Each footprint is projected back to the same slit that cast it.
+function aperture(x, depth, west) {
+  if (depth < 0) return 0
+  const origin = west ? 1.02 : 1.41
+  const spread = 1 + depth / (west ? 1.09 : 1.72)
+  const gate = origin + ((west ? -x : x) - origin) / spread
+  if (gate < -1.5 || gate > 2.22) return 0
+  const penumbra = .018 + (west ? .062 : .125) * (1 - 1 / spread)
+  const outerSlit = windowAt(gate - 12 * unit, .074, penumbra)
+  const innerSlit = windowAt(gate - 10 * unit, .074, penumbra)
+  const innerEdge = clamp(.5 + (8.5 * unit - gate) / (2.4 * penumbra))
+  const spill = innerEdge * g((gate - (west ? 1.17 : 1.03)) / (west ? .28 : .58))
+  return (outerSlit * (west ? .22 : .55) + innerSlit + spill * .7) / (1 + depth * (.23 + .14 * depth))
 }
 
-function transmittedLight(x, y, z) {
-  if (z < 0 || y < 0) return 0
-  const spread = 1 + z / 1.52
-  const gateY = .81 + (y - .81) / spread
-  if (gateY > 3.1) return 0
-  const blur = .015 + .039 * (1 - 1 / spread)
-  const west = aperture(1.14 - (x + 1.14) / spread, blur)
-  const east = aperture(1.37 + (x - 1.37) / spread, blur)
-  const brightness = (1.16 * west + .84 * east) * glow((gateY - .62) / 1.52)
-  return brightness * clamp((3.1 - gateY) / .2) / (1 + z * (.20 + .15 * z))
+function material(x, y, z, bounds, face) {
+  const [left, right, bottom, top, back, front] = bounds
+  const side = Math.min(x - left, right - x)
+  const vertical = Math.min(y - bottom, top - y)
+  const thickness = Math.min(z - back, front - z)
+  const edge = face === 'front' ? Math.min(side, vertical) :
+    face === 'top' ? Math.min(side, thickness) : Math.min(thickness, vertical)
+  const lip = g(Math.max(edge, 0) / .007)
+  const litEnd = g((x + 1.52) / .58)
+  const low = g((y - .18) / 1.26)
+  if (face === 'top') return .035 + .13 * litEnd + .05 * (x / halfWidth + 1) + .25 * lip
+  if (face === 'side') return .048 + .15 * (front - z) / (front - back) + .52 * low * litEnd + .28 * lip
+  const skim = bounds === lintel ? (.22 + .94 * g((x - .99) / .8)) * g((y - bottom) / .022) : 0
+  return .014 + .045 * low * litEnd + (.08 + .22 * litEnd) * lip + skim
 }
 
-function surfaceAt(x, y, z, bounds, face, isBeam) {
-  const [x1, x2, y1, y2, z1, z2] = bounds
-  const edgeDistance = face === 'front'
-    ? Math.min(x - x1, x2 - x, y - y1, y2 - y)
-    : face === 'top' ? Math.min(x - x1, x2 - x, z - z1, z2 - z)
-      : Math.min(z - z1, z2 - z, y - y1, y2 - y)
-  const polish = glow(Math.max(0, edgeDistance) / .009)
-  const sky = .44 + .56 * glow((x + .72) / 1.43)
-  const bounce = isBeam ? .12 : .41 * glow(y / 1.2)
-  if (face === 'top') return .085 + .24 * sky + polish * .25
-  if (face === 'side') return .08 + .19 * (z2 - z) / (z2 - z1) + bounce + .48 * polish * sky
-  const strip = .32 + 2.7 * glow((x - .48) / .68)
-  const lowerLip = isBeam ? strip * glow((y - y1) / .029) : .015
-  return .008 + sky * .019 + bounce * .12 + polish * (.1 + sky * .28) + lowerLip
+const shoulders = Float32Array.from({ length: 2049 }, (_, i) => 1 - Math.exp(-i / 256))
+function expose(radiance) {
+  const t = Math.min(2047, Math.max(0, radiance * 256))
+  const i = t | 0
+  return shoulders[i] + (shoulders[i + 1] - shoulders[i]) * (t - i)
 }
 
-// A recessed strip just behind the lintel grazes the air in the opening.
-// Its broad, off-axis falloff leaves the opposite side of the stage in shadow.
-function lintelWash(x, y) {
-  const drop = beam[2] - y
-  if (drop < -.12) return 0
-  const reach = Math.max(0, drop)
-  const center = .48 - .58 * reach
-  const hot = glow((x - center) / (.74 + .18 * reach))
-  const edge = glow((x - center - .48) / (.14 + .14 * reach))
-  return (hot + .52 * edge) * Math.exp(-1.07 * reach) * glow(Math.min(drop, 0) / .052)
+let frontFace
+function finishFaces(ctx, layout) {
+  frontFace ??= new Path2D(new DOMParser().parseFromString(symbol, 'image/svg+xml').querySelector('path').getAttribute('d'))
+  const { centerX, centerY, scale } = layout
+  const svgScale = 2 * halfWidth / 251
+  const x = centerX + scale * (-halfWidth * cosA + frontZ * sinA)
+  const y = centerY - scale * (-halfWidth * sinE * sinA + (2 * halfWidth - 2.02) * cosE - frontZ * sinE * cosA)
+  ctx.save()
+  ctx.transform(scale * cosA * svgScale, -scale * sinE * sinA * svgScale, 0, scale * cosE * svgScale, x, y)
+  const satin = ctx.createLinearGradient(0, 0, 251, 126)
+  satin.addColorStop(0, 'rgba(17, 25, 14, .59)')
+  satin.addColorStop(.29, 'rgba(35, 41, 20, .33)')
+  satin.addColorStop(.60, 'rgba(5, 17, 12, .50)')
+  satin.addColorStop(1, 'rgba(10, 22, 17, .45)')
+  ctx.fillStyle = satin
+  ctx.fill(frontFace)
+  ctx.restore()
 }
 
-const fogDepth = [0.12, .34, .67, 1.14, 1.78, 2.64, 3.8, 5.28]
-const fogWeight = [.14, .21, .25, .24, .22, .175, .11, .065]
-function haze(x0, y0, nearZ) {
-  let light = 0
-  for (let i = 0; i < fogDepth.length; i++) {
-    const z = fogDepth[i]
-    if (z < nearZ) continue
-    const y = y0 + dy * z
-    light += transmittedLight(x0 + dx * z, y, z) * fogWeight[i]
+function frame(w, h) {
+  const portrait = w <= h
+  const square = clamp((w / h - .55) / .45)
+  return {
+    portrait,
+    scale: portrait ? Math.min(.185 * w, .115 * h) : Math.min(.139 * w, .155 * h),
+    centerX: w * (portrait ? .51 + .042 * square : .705),
+    centerY: h * (portrait ? .374 - .061 * square : .438),
   }
-  return light
+}
+
+function paintLight(ctx, w, h) {
+  const { portrait, scale, centerX, centerY } = frame(w, h)
+  const pixels = ctx.createImageData(w, h)
+  const data = pixels.data
+  for (let col = 0; col < w; col++) {
+    const x = (col + .5 - centerX) / (scale * cosA)
+    const candidates = []
+    for (const bounds of prisms) {
+      const far = Math.max(bounds[4], (bounds[1] - x) / rayX)
+      const near = Math.min(bounds[5], (bounds[0] - x) / rayX)
+      if (far < near) candidates.push({ bounds, far, near })
+    }
+    for (let row = 0; row < h; row++) {
+      const y = 2.02 + ((centerY - row - .5) / scale - sinE * sinA * x) / cosE
+      const floor = -y / rayY
+      let nearest = floor, metal = 0, hit = false
+      for (const { bounds, far, near } of candidates) {
+        const upper = (bounds[3] - y) / rayY
+        const z = Math.min(near, upper)
+        if (z <= nearest || Math.max(far, (bounds[2] - y) / rayY) >= z) continue
+        nearest = z
+        hit = true
+        const face = z === upper ? 'top' : near === bounds[5] ? 'front' : 'side'
+        metal = material(x + rayX * z, y + rayY * z, z, bounds, face)
+      }
+
+      let gold = 0, green = 0
+      if (!hit) {
+        // A bowed sheet of haze catches grazing light. Its lit edge, soft
+        // shoulder and varying colour are all functions of the same fold.
+        const t = clamp((y + .10) / 4.02)
+        const axis = -1.56 + t * (3.84 - 1.07 * t) + .38 * Math.sin(t * 7.4 - .37)
+        const waist = .32 + .62 * t + .23 * Math.sin(t * 4.9 - .25)
+        const across = (x - axis) / waist
+        const height = g((y - 1.50) / 2.62) * clamp((4.09 - y) / .31) * clamp((y + .31) / .50)
+        const fold = g((across + .36 - .74 * t) / (.29 + .43 * t))
+        const soft = g((across - .40) / 1.67)
+        const edge = g((across + .73 - .42 * Math.sin(5.7 * t)) / (.17 + .23 * t))
+        const turning = g((t - .45) / .22)
+        green += height * (.42 * soft + .69 * fold + .14 * edge) * (.51 + .60 * t)
+        gold += height * ((.31 * soft + .78 * fold) * g((t - .24) / .35) + .37 * edge * turning)
+
+        // Negative space remains inside the arch. A soft jade bounce at its
+        // far edge and a much tighter warm jamb establish the direction.
+        green += .75 * g((x - 1.74 + .16 * y) / .86) * g((y - .66) / 1.71)
+        gold += 2.74 * g((x + 1.52) / .39) * g((y - .13) / .57)
+        const drop = 24 * unit - y
+        if (drop > -.12) {
+          const fall = Math.max(0, drop)
+          const slit = x - .91 + .41 * fall
+          const source = g(slit / (.62 + .22 * fall))
+          const focus = .54 - .63 * fall + .14 * fall * fall
+          const penumbra = .105 + .21 * Math.abs(fall - .70)
+          const convergence = g((slit - focus) / penumbra)
+          const diffuse = g(fall / 1.43) * g(Math.min(0, drop) / .062)
+          green += (.74 * source + .28 * convergence) * diffuse
+          gold += .49 * convergence * diffuse * g((fall - .64) / .75)
+        }
+        if (floor > 0) {
+          const fx = x + rayX * floor
+          const contact = clamp(floor / .28)
+          const west = aperture(fx, floor, true), east = aperture(fx, floor, false)
+          // The refracted caustic widens across the apron as the gold beam
+          // crosses the green one. It fades before the portrait title.
+          const curl = -1.45 + .38 * floor - .55 * Math.sin(.92 * floor + .31)
+          const crossSection = (fx - curl) / (.29 + .10 * floor)
+          const caustic = g(crossSection)
+          const outerFold = g((crossSection + .88 - .26 * Math.sin(floor)) / (.23 + .04 * floor))
+          const pool = g((fx - curl - .48) / (.94 + .27 * floor))
+          const fade = 1 / (1 + .18 * floor * floor)
+          gold += contact * (2.35 * west + (.61 * caustic + .59 * outerFold + .34 * pool) * fade)
+          green += contact * (1.37 * east + (.61 * pool + .28 * caustic) * fade + .15 * west)
+        }
+      }
+      // Two near-field scattering samples soften the apertures without
+      // obscuring the face of the metal or duplicating its hard outlines.
+      for (const z of scatteringDepths) {
+        if (nearest > z) continue
+        const sy = y + rayY * z
+        if (sy < 0 || sy > 3.16) continue
+        const visibility = clamp((z - nearest) / .26) * clamp(sy / .10)
+        const weight = .21 * visibility * g((sy - .43) / 1.28) * clamp((3.16 - sy) / .42)
+        gold += weight * aperture(x + rayX * z, z, true)
+        green += weight * aperture(x + rayX * z, z, false)
+      }
+      if (portrait && floor > 1.2 && !hit) {
+        const shade = 1 / (1 + .64 * (floor - 1.2) ** 2)
+        gold *= shade
+        green *= shade
+      }
+      const ambient = hit ? .015 : .28 * g((x - .15) / 3.86) * g((y - 1.08) / 2.76)
+      const warmth = .21 + .53 * g((x + 1.4) / .94)
+      gold += metal * warmth
+      green += metal * (1.07 - warmth)
+      const white = Math.max(0, gold - 1.8) ** 2 * .15
+      const index = (row * w + col) * 4
+      const tooth = grainTile[(row & 127) * 128 + (col & 127)] * (3.2 + 3.5 * clamp(gold + green))
+      data[index] = 7 + 13 * ambient + 247 * expose(1.07 * gold + .063 * green + white) + tooth
+      data[index + 1] = 13 + 58 * ambient + (241 - 55 * ambient) * expose(.90 * gold + 1.10 * green + white) + tooth
+      data[index + 2] = 12 + 42 * ambient + 233 * expose(.075 * gold + .49 * green + white) + tooth * .9
+      data[index + 3] = 255
+    }
+  }
+  ctx.putImageData(pixels, 0, 0)
 }
 
 export function drawFacade(canvas) {
   const width = canvas.clientWidth, height = canvas.clientHeight
   if (!width || !height) return
-  const density = Math.min(window.devicePixelRatio || 1, 1.65, 2048 / Math.max(width, height))
+  const density = Math.min(window.devicePixelRatio || 1, 1.75, 2400 / Math.max(width, height))
   const w = Math.max(1, Math.round(width * density)), h = Math.max(1, Math.round(height * density))
   if (canvas.width === w && canvas.height === h && canvas.dataset.ready) return
   const ctx = canvas.getContext('2d', { alpha: false })
   if (!ctx) return
+  const lightMap = document.createElement('canvas')
+  const ratio = Math.min(1, 1440 / Math.max(w, h))
+  lightMap.width = Math.max(1, Math.round(w * ratio))
+  lightMap.height = Math.max(1, Math.round(h * ratio))
+  const lightContext = lightMap.getContext('2d', { alpha: false })
+  if (!lightContext) return
+  paintLight(lightContext, lightMap.width, lightMap.height)
   canvas.width = w
   canvas.height = h
-  const portrait = w <= h
-  const scale = portrait ? Math.min(.176 * w, .11 * h) : Math.min(.125 * w, .16 * h)
-  const squareFrame = clamp((w / h - .55) / .45)
-  const centerX = w * (portrait ? .52 + .025 * squareFrame : .7)
-  const centerY = h * (portrait ? .385 - .05 * squareFrame : .431)
-  const image = ctx.createImageData(w, h)
-  const data = image.data
-
-  for (let col = 0; col < w; col++) {
-    const x0 = (col + .5 - centerX) / (scale * cosA)
-    // Only prisms whose projected widths cover this column can be visible.
-    const candidates = []
-    for (const bounds of pieces) {
-      const far = Math.max(bounds[4], (bounds[1] - x0) / dx)
-      const near = Math.min(bounds[5], (bounds[0] - x0) / dx)
-      if (far < near) candidates.push({ bounds, far, near })
-    }
-    for (let row = 0; row < h; row++) {
-      const y0 = 2.02 + ((centerY - row - .5) / scale - sinE * sinA * x0) / cosE
-      const floorZ = -y0 / dy
-      let nearZ = floorZ
-      let solid = 0
-      let hit = false
-      for (const candidate of candidates) {
-        const b = candidate.bounds
-        const farY = (b[2] - y0) / dy, nearY = (b[3] - y0) / dy
-        const z = Math.min(candidate.near, nearY)
-        if (Math.max(candidate.far, farY) >= z || z <= nearZ) continue
-        nearZ = z
-        hit = true
-        const face = z === nearY ? 'top' : z === b[5] ? 'front' : 'side'
-        solid = surfaceAt(x0 + dx * z, y0 + dy * z, z, b, face, b === beam)
-      }
-      const floorX = x0 + dx * floorZ
-      const localX = Math.abs(x0)
-      const air = .31 * glow((x0 - .12) / 3.9) * glow((y0 - 1) / 2.95)
-      const wing = glow((localX - 1.73) / .52)
-      const foot = glow((y0 - .02) / .42)
-      let light = 0
-      if (!hit) {
-        // Backstage spill has a cold white core at the floor line. A separate,
-        // broad blue bounce carries into the open middle of the stage.
-        light = .96 * wing * glow((y0 - .77) / 1.48) + 3.8 * wing * foot + lintelWash(x0, y0)
-        if (floorZ > 0) {
-          const contact = clamp(floorZ / .42)
-          light += contact * (3.85 * transmittedLight(floorX, 0, floorZ) +
-            .43 * glow((Math.abs(floorX) - 1.54) / 1.18) * glow(floorZ / 2.73))
-        }
-      }
-      light += .66 * haze(x0, y0, nearZ)
-      // On upright frames the title sits on the apron, beyond the pool of light.
-      if (portrait && !hit && floorZ > 1.4) {
-        light /= 1 + .32 * (floorZ - 1.4) ** 2
-      }
-      const backdrop = hit ? .012 : air
-      const grain = ((Math.imul((row * w + col) ^ (row << 6), 0x27d4eb2d) >>> 24) / 255 - .5) * (3 + 3 * clamp(light))
-      const index = (row * w + col) * 4
-      // Blue light saturates the deepest shadows first. The high exposures
-      // at the aperture approach ice-white without a hard clipped contour.
-      const energy = light + solid
-      data[index] = 3 + 13 * backdrop + 248 * (1 - Math.exp(-.27 * energy)) + grain
-      data[index + 1] = 9 + 42 * backdrop + 245 * (1 - Math.exp(-.64 * energy)) + grain
-      data[index + 2] = 26 + 170 * backdrop + (229 - 165 * backdrop) * (1 - Math.exp(-1.95 * energy)) + grain
-      data[index + 3] = 255
-    }
-  }
-  ctx.putImageData(image, 0, 0)
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(lightMap, 0, 0, w, h)
+  finishFaces(ctx, frame(w, h))
   canvas.dataset.ready = 'true'
 }

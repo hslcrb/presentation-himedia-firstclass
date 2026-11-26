@@ -23,26 +23,26 @@ onBeforeUnmount(() => observer?.disconnect())
 
 <style scoped>
 .facade-cover, canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.facade-cover { background: #040b20; overflow: hidden; }
+.facade-cover { background: #080e0c; overflow: hidden; }
 canvas { display: block; pointer-events: none; }
 h1 {
   position: absolute;
-  left: 6.1%;
-  top: 51.5%;
+  left: 6.3%;
+  top: 59%;
   transform: translateY(-50%);
   margin: 0;
-  color: #f3f7ff;
+  color: #f2f3df;
   line-height: 1.12;
   letter-spacing: -.072em;
 }
 h1 span, h1 strong { display: block; white-space: nowrap; }
 h1 span {
-  margin-bottom: .33em;
-  color: #c3d6f8;
-  font-size: min(3.55cqw, 8.5cqh);
-  font-weight: 455;
+  margin-bottom: .38em;
+  color: #c5d3b9;
+  font-size: min(3.25cqw, 8cqh);
+  font-weight: 435;
 }
-h1 strong { font-size: min(6.85cqw, 15.5cqh); font-weight: 720; }
+h1 strong { font-size: min(6.65cqw, 15.1cqh); font-weight: 660; }
 @media (max-aspect-ratio: 1/1) {
   h1 { left: 7%; top: auto; bottom: 9.4%; transform: none; }
   h1 span { font-size: min(6.8cqw, 5.8cqh); }

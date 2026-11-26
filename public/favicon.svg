@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
     <linearGradient id="spill" x2=".4" y2="1">
-      <stop stop-color="#e4fdff"/><stop offset=".35" stop-color="#6bbdff"/><stop offset="1" stop-color="#1542ba"/>
+      <stop stop-color="#fff1a0"/><stop offset=".35" stop-color="#c8d954"/><stop offset="1" stop-color="#218954"/>
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="12" fill="#07152e"/>
+  <rect width="64" height="64" rx="12" fill="#080e0c"/>
   <path d="M35 12h5L19 53H7zm11 0h4l-9 41H28z" fill="url(#spill)"/>
 </svg>
