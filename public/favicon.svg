@@ -1,7 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#f0f5f5"/>
-  <g transform="rotate(-32 32 32)">
-    <ellipse cx="31" cy="24" rx="23" ry="13" fill="#2797dc"/>
-    <ellipse cx="32" cy="38" rx="23" ry="13" fill="#3452ad" style="mix-blend-mode:multiply"/>
-  </g>
+  <defs>
+    <linearGradient id="spill" x2=".4" y2="1">
+      <stop stop-color="#e4fdff"/><stop offset=".35" stop-color="#6bbdff"/><stop offset="1" stop-color="#1542ba"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="#07152e"/>
+  <path d="M35 12h5L19 53H7zm11 0h4l-9 41H28z" fill="url(#spill)"/>
 </svg>

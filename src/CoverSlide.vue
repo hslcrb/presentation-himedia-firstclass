@@ -1,14 +1,15 @@
 <script setup>
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
-import ImprintCover from './ImprintCover.vue'
+import FacadeCover from './FacadeCover.vue'
 
 const previews = {
+  imprint: defineAsyncComponent(() => import('./ImprintCover.vue')),
   link: defineAsyncComponent(() => import('./studies/LinkStudy.vue')),
   type: defineAsyncComponent(() => import('./studies/TypeStudy.vue')),
 }
 const requested = new URLSearchParams(window.location.search).get('study')
-const edition = Object.hasOwn(previews, requested) ? requested : 'imprint'
-const Cover = previews[edition] ?? ImprintCover
+const edition = Object.hasOwn(previews, requested) ? requested : 'facade'
+const Cover = previews[edition] ?? FacadeCover
 
 const fullscreen = ref(false)
 const supportsFullscreen = ref(false)
@@ -78,7 +79,7 @@ onBeforeUnmount(() => document.removeEventListener('fullscreenchange', syncFulls
   isolation: isolate;
   container-type: size;
   overflow: hidden;
-  background: #f0f5f5;
+  background: #040b20;
   color: #eff6ff;
   font-family: "Noto Sans KR Cover", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   -webkit-font-smoothing: antialiased;
